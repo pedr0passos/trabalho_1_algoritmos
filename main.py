@@ -34,113 +34,153 @@ def ler_arquivo(nome_arquivo):
         except:
             print("Erro ao ler arquivo")
 
-def gauss_jacobi(matriz_A, vetor_B, precisao, max_iteracoes=1000):
-    dimensao = len(vetor_B)
-    x = np.zeros(dimensao)
-    x_anterior = np.zeros(dimensao)
-    erro = np.inf
-    iteracao = 0
-
-    start_time = time.time()
-
-    while erro > precisao and iteracao < max_iteracoes:
-        for i in range(dimensao):
-            soma = 0
-            for j in range(dimensao):
-                if j != i:
-                    soma += matriz_A[i][j] * x[j]
-            x[i] = (vetor_B[i] - soma) / matriz_A[i][i]
+def gauss_jacobi(matriz_A, vetores_B, iteracoes):
+    dimensao = len(matriz_A)
+    solucoes = []
+    tempos = []
+    
+    for vetor_B in vetores_B:
+        tempo_inicial = time.time()
+        iteracao = 0
+        auxiliar = np.zeros(dimensao)
+        solucao = np.zeros(dimensao)
         
-        erro = np.linalg.norm(x - x_anterior)
-        x_anterior = np.copy(x)
-        iteracao += 1
+        while iteracao < iteracoes:
+            for linha in range(dimensao):
+                x = vetor_B[linha]
+                for coluna in range(dimensao):
+                    if linha != coluna:
+                        x -= (matriz_A[linha][coluna] * solucao[coluna])
+                x /= matriz_A[linha][linha]
+                auxiliar[linha] = x
+            iteracao += 1
 
-    end_time = time.time()  
-    tempo = end_time - start_time  
+            for i in range(len(auxiliar)):
+                solucao[i] = auxiliar[i]
 
-    return x, tempo
+        tempo_final = time.time()
+        tempo = tempo_final - tempo_inicial
 
-def gauss_seidel(matriz_A, vetor_B, precisao, max_iteracoes=1000):
-    dimensao = len(vetor_B)
-    x = np.zeros(dimensao)
-    x_anterior = np.zeros(dimensao)
-    erro = np.inf
-    iteracao = 0
+        tempos.append(tempo)
+        solucoes.append(solucao)
+    
+    return solucoes, tempos
 
-    start_time = time.time()
 
-    while erro > precisao and iteracao < max_iteracoes:
+def gauss_seidel(matriz_A, vetores_B, iteracoes=1000):
+    dimensao = len(matriz_A)
+    solucoes = []
+    for vetor_B in vetores_B:
+        solucao = np.zeros(dimensao)
+        iteracao = 0
+        while iteracao < iteracoes:
+            for linha in range(dimensao):
+                x = vetor_B[linha]
+                for coluna in range(dimensao):
+                    if linha != coluna:
+                        x -= (matriz_A[linha][coluna] * solucao[coluna])
+                x /= matriz_A[linha][linha]
+                solucao[linha] = x
+            iteracao += 1
+        solucoes.append(solucao)
+    return solucoes, iteracoes
+    
+
+def eliminacao_Gauss(dimensao, matriz_A, vetores_B):
+
+    solucoes = []
+    tempos_execucao = []
+
+    for vetor_B in vetores_B:
+        inicio_tempo = time.time()
+
+        # Copia a matriz_A para não modificar o original
+        matriz_ab = [matriz_A[i] + [vetor_B[i]] for i in range(dimensao)]
+
+        # Eliminação de Gauss
         for i in range(dimensao):
-            soma = 0
-            for j in range(dimensao):
-                if j != i:
-                    soma += matriz_A[i][j] * x[j]
-            x[i] = (vetor_B[i] - soma) / matriz_A[i][i]
-        
-        erro = np.linalg.norm(x - x_anterior)
-        x_anterior = np.copy(x)
-        iteracao += 1
+            max_el = abs(matriz_ab[i][i])
+            max_row = i
+            for k in range(i + 1, dimensao):
+                if abs(matriz_ab[k][i]) > max_el:
+                    max_el = abs(matriz_ab[k][i])
+                    max_row = k
 
-    end_time = time.time()  
-    tempo = end_time - start_time  
+            matriz_ab[i], matriz_ab[max_row] = matriz_ab[max_row], matriz_ab[i]
 
-    return x, tempo
+            for k in range(i + 1, dimensao):
+                c = -matriz_ab[k][i] / matriz_ab[i][i]
+                for j in range(i, dimensao + 1):
+                    if i == j:
+                        matriz_ab[k][j] = 0
+                    else:
+                        matriz_ab[k][j] += c * matriz_ab[i][j]
 
-def metodo_gauss(matriz_A, vetor_B):
-    dimensao = len(vetor_B)
-    start_time = time.time()
+        # Substituição Regressiva
+        x = [0 for _ in range(dimensao)]
+        for i in range(dimensao - 1, -1, -1):
+            x[i] = matriz_ab[i][dimensao] / matriz_ab[i][i]
+            for k in range(i - 1, -1, -1):
+                matriz_ab[k][dimensao] -= matriz_ab[k][i] * x[i]
 
-    for i in range(dimensao):
-        pivo = matriz_A[i][i]
-        for j in range(i + 1, dimensao):
-            multiplicador = matriz_A[j][i] / pivo
-            matriz_A[j] -= multiplicador * matriz_A[i]
-            vetor_B[j] -= multiplicador * vetor_B[i]
-    
-    x = np.zeros(dimensao)
-    for i in range(dimensao - 1, -1, -1):
-        x[i] = vetor_B[i]
-        for j in range(i + 1, dimensao):
-            x[i] -= matriz_A[i][j] * x[j]
-        x[i] /= matriz_A[i][i]
-    
-    end_time = time.time()
-    tempo = end_time - start_time
+        tempo_execucao = time.time() - inicio_tempo
 
-    return x, tempo
+        solucoes.append(x)
+        tempos_execucao.append(tempo_execucao)
 
-def metodo_lu(matriz_A, vetor_B):
-    dimensao = len(vetor_B)
-    start_time = time.time()
+    return solucoes, tempos_execucao
 
-    L = np.eye(dimensao)
-    U = np.copy(matriz_A)
+def fatoracao_LU_resolver(dimensao, matriz_A, vetores_B):
+    solucoes = []
+    tempos_execucao = []
 
-    for i in range(dimensao):
-        pivo = U[i][i]
-        for j in range(i + 1, dimensao):
-            multiplicador = U[j][i] / pivo
-            L[j][i] = multiplicador
-            U[j] -= multiplicador * U[i]
-    
-    y = np.zeros(dimensao)
-    for i in range(dimensao):
-        y[i] = vetor_B[i]
-        for j in range(i):
-            y[i] -= L[i][j] * y[j]
-        y[i] /= L[i][i]
-    
-    x = np.zeros(dimensao)
-    for i in range(dimensao - 1, -1, -1):
-        x[i] = y[i]
-        for j in range(i + 1, dimensao):
-            x[i] -= U[i][j] * x[j]
-        x[i] /= U[i][i]
-    
-    end_time = time.time()
-    tempo = end_time - start_time
+    def fatoracao_lu(matriz_A):
 
-    return x, tempo
+        n = len(matriz_A)
+        L = [[0.0] * n for _ in range(n)]
+        U = [[0.0] * n for _ in range(n)]
+
+        for i in range(n):
+            L[i][i] = 1.0
+            for j in range(i, n):
+                soma = sum(U[k][j] * L[i][k] for k in range(i))
+                U[i][j] = matriz_A[i][j] - soma
+            for j in range(i + 1, n):
+                soma = sum(U[k][i] * L[j][k] for k in range(i))
+                L[j][i] = (matriz_A[j][i] - soma) / U[i][i]
+
+        return L, U
+
+    def resolver_sistema_lu(L, U, b):
+
+        n = len(L)
+        y = [0.0] * n
+        x = [0.0] * n
+
+        # Solução de Ly = b (substituição para frente)
+        for i in range(n):
+            y[i] = b[i] - sum(L[i][j] * y[j] for j in range(i))
+
+        # Solução de Ux = y (substituição para trás)
+        for i in range(n - 1, -1, -1):
+            x[i] = (y[i] - sum(U[i][j] * x[j] for j in range(i + 1, n))) / U[i][i]
+
+        return x
+
+    # Fatoração LU da matriz A
+    L, U = fatoracao_lu(matriz_A)
+
+    # Resolver para cada vetor B
+    for vetor_B in vetores_B:
+        inicio_tempo = time.time()
+
+        solucao = resolver_sistema_lu(L, U, vetor_B)
+        tempo_execucao = time.time() - inicio_tempo
+
+        solucoes.append(solucao)
+        tempos_execucao.append(tempo_execucao)
+
+    return solucoes, tempos_execucao
 
 def imprimir_resultados(idx, A, b, precisao, X_gauss, tempo_gauss, X_lu, tempo_lu, X_jacobi, tempo_jacobi, X_seidel, tempo_seidel):
     print(f"Sistema {idx + 1}:")
@@ -168,6 +208,16 @@ def imprimir_resultados(idx, A, b, precisao, X_gauss, tempo_gauss, X_lu, tempo_l
     
     print()
 
+def imprime_resultados_separados(metodo, solucao, tempo):
+    print(metodo + ": ")
+    print("Solução: ")
+    print(solucao)
+    print("Tempo: ")
+    print(tempo)
+    print("------------------------------------------------------------")
+    
+
+
 def main():
     quantidade_sistemas, dimensao, precisao, matriz_a, vetores_b = ler_arquivo('2_3x3.txt')
     print("Quantidade de Sistemas:",quantidade_sistemas)
@@ -175,6 +225,23 @@ def main():
     print("Precisão:",precisao)
     print("Matriz A:",matriz_a)
     print("Vetor B:",vetores_b)
+    print("------------------------------------------------------------")
+
+    X_gauss, tempo_gauss = eliminacao_Gauss(dimensao, matriz_a, vetores_b)
+    imprime_resultados_separados("Eliminação de gauss", X_gauss, tempo_gauss)
+
+
+    X_lu, tempo_lu = fatoracao_LU_resolver(dimensao, matriz_a, vetores_b)
+    imprime_resultados_separados("Fatoração LU", X_lu, tempo_lu)
+
+
+    X_jacodi, tempo_jacodi = gauss_jacobi(matriz_a, vetores_b, 100)
+    imprime_resultados_separados("Gauss Jacodi", X_jacodi, tempo_jacodi)
+    
+    X_seidel, tempo_seidel = gauss_seidel(matriz_a, vetores_b, 1000)
+    imprime_resultados_separados("Gauss Seidel", X_seidel, tempo_seidel)   
+    
+
 
 if __name__ == '__main__':
     main()
