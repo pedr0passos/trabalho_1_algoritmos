@@ -90,10 +90,10 @@ def gauss_seidel(matriz_A, vetor_B, precisao, max_iteracoes=1000):
 def Eliminacao_Gauss(dimensao, matriz_A, vetores_B):
 
     solucoes = []
-    tempos_execucao = []
+
+    start_time = time.time()
 
     for vetor_B in vetores_B:
-        inicio_tempo = time.time()
 
         # Copia a matriz_A para não modificar o original
         matriz_ab = [matriz_A[i] + [vetor_B[i]] for i in range(dimensao)]
@@ -124,16 +124,15 @@ def Eliminacao_Gauss(dimensao, matriz_A, vetores_B):
             for k in range(i - 1, -1, -1):
                 matriz_ab[k][dimensao] -= matriz_ab[k][i] * x[i]
 
-        tempo_execucao = time.time() - inicio_tempo
-
+        end_time = time.time()
+        tempo_execucao = end_time - start_time  
         solucoes.append(x)
-        tempos_execucao.append(tempo_execucao)
 
-    return solucoes, tempos_execucao
+    return solucoes, tempo_execucao
 
 def Fatoracao_LU_resolver(dimensao, matriz_A, vetores_B):
     solucoes = []
-    tempos_execucao = []
+    start_time = time.time()
 
     def fatoracao_lu(matriz_A):
 
@@ -173,15 +172,14 @@ def Fatoracao_LU_resolver(dimensao, matriz_A, vetores_B):
 
     # Resolver para cada vetor B
     for vetor_B in vetores_B:
-        inicio_tempo = time.time()
 
         solucao = resolver_sistema_lu(L, U, vetor_B)
-        tempo_execucao = time.time() - inicio_tempo
-
         solucoes.append(solucao)
-        tempos_execucao.append(tempo_execucao)
+    
+    end_time = time.time()
+    tempo_execucao = end_time - start_time  
 
-    return solucoes, tempos_execucao
+    return solucoes, tempo_execucao
 
 def imprimir_resultados(idx, A, b, precisao, X_gauss, tempo_gauss, X_lu, tempo_lu, X_jacobi, tempo_jacobi, X_seidel, tempo_seidel):
     print(f"Sistema {idx + 1}:")
@@ -224,25 +222,31 @@ def main():
         print(f"matrizA = {matriz_A}")
         print(f"Vetor B = {vetores_B}")
 
-        print("Metodo Eliminação de Gauss")
-        solucoes, tempos = Eliminacao_Gauss(dimensao, matriz_A, vetores_B)
-        print(f"Soluções = {solucoes}")
-        print(f"tempos = {tempos}")
+        print(f"tempo agora = {time.time()}")
 
-        print("Método Fatoração LU")
-        solucoes, tempos = Fatoracao_LU_resolver(dimensao, matriz_A, vetores_B)
+        start_time = time.time()
+        print("Metodo Eliminação de Gauss")
+        solucoes, tempo = Eliminacao_Gauss(dimensao, matriz_A, vetores_B)
+        end_time = time.time()
         print(f"Soluções = {solucoes}")
-        print(f"tempos = {tempos}")
+        print(f"tempos = {(end_time - start_time)}")
+
+        start_time = time.time()
+        print("Método Fatoração LU")
+        solucoes, tempo = Fatoracao_LU_resolver(dimensao, matriz_A, vetores_B)
+        end_time = time.time()
+        print(f"Soluções = {solucoes}")
+        print(f"tempos = {(end_time - start_time)}")
 
         print("Gauss Jacobi")
-        solucoes, tempos = gauss_jacobi(matriz_A, vetores_B, precisao)
+        solucoes, tempo = gauss_jacobi(matriz_A, vetores_B, precisao)
         print(f"Soluções = {solucoes}")
-        print(f"tempos = {tempos}")
+        print(f"tempos = {tempo}")
 
         print("Gauss seidel")
-        solucoes, tempos = gauss_seidel(matriz_A, vetores_B, precisao)
+        solucoes, tempo = gauss_seidel(matriz_A, vetores_B, precisao)
         print(f"Soluções = {solucoes}")
-        print(f"tempos = {tempos}")
+        print(f"tempos = {tempo}")
 
     except Exception as error:
         print(error)
