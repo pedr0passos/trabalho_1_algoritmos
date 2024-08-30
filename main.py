@@ -44,10 +44,10 @@ def gauss_seidel(matriz_A, vetores_B, precisao):
 def eliminacao_gauss(dimensao, matriz_A, vetores_B):
 
     solucoes = []
-    tempos_execucao = []
+
+    start_time = time.time()
 
     for vetor_B in vetores_B:
-        inicio_tempo = time.time()
 
         # Copia a matriz_A para não modificar o original
         matriz_ab = [matriz_A[i] + [vetor_B[i]] for i in range(dimensao)]
@@ -78,16 +78,15 @@ def eliminacao_gauss(dimensao, matriz_A, vetores_B):
             for k in range(i - 1, -1, -1):
                 matriz_ab[k][dimensao] -= matriz_ab[k][i] * x[i]
 
-        tempo_execucao = time.time() - inicio_tempo
-
+        end_time = time.time()
+        tempo_execucao = end_time - start_time  
         solucoes.append(x)
-        tempos_execucao.append(tempo_execucao)
 
-    return solucoes, tempos_execucao
+    return solucoes, tempo_execucao
 
 def fatoracao_lu_resolver(matriz_A, vetores_B):
     solucoes = []
-    tempos_execucao = []
+    start_time = time.time()
 
     def fatoracao_lu(matriz_A):
         n = len(matriz_A)
@@ -129,15 +128,14 @@ def fatoracao_lu_resolver(matriz_A, vetores_B):
 
     # Resolver para cada vetor B
     for vetor_B in vetores_B:
-        inicio_tempo = time.time()
 
         solucao = resolver_sistema_lu(L, U, vetor_B)
-        tempo_execucao = time.time() - inicio_tempo
-
         solucoes.append(solucao)
-        tempos_execucao.append(tempo_execucao)
+    
+    end_time = time.time()
+    tempo_execucao = end_time - start_time  
 
-    return solucoes, tempos_execucao
+    return solucoes, tempo_execucao
 
 def formatar_lista(lista):
     """Formata uma lista de números para 10 casas decimais."""
@@ -177,7 +175,7 @@ def main():
         nome_arquivo = "2_3x3.txt" #recupera o nome do arquivo no argumento
 
         dimensao, precisao, matriz_A, vetores_B = ler_arquivo(nome_arquivo)
-
+        
         X_gauss, tempo_gauss = eliminacao_gauss(dimensao, matriz_A, vetores_B)
         X_lu, tempo_lu = fatoracao_lu_resolver(matriz_A, vetores_B)
         
