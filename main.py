@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import sys
+from pprint import pprint
 
 """
 @authors: 
@@ -31,63 +32,16 @@ def ler_arquivo(nome_arquivo):
                 vetor_b = list(map(float, corrigir_caracteres(file.readline()).split()))
                 vetores_b.append(vetor_b)
 
-            return quantidade_sistemas, dimensao, precisao, matriz_a, vetores_b
+            return dimensao, precisao, matriz_a, vetores_b
         except:
             print("Erro ao ler arquivo")
 
-def gauss_jacobi(matriz_A, vetor_B, precisao, max_iteracoes=1000):
-    dimensao = len(vetor_B)
-    x = np.zeros(dimensao)
-    x_anterior = np.zeros(dimensao)
-    erro = np.inf
-    iteracao = 0
+def metodo_gauss_jacobi(dimensao, precisao, matriz_A, vetores_B):
 
-    start_time = time.time()
+def gauss_seidel(matriz_A, vetores_B, precisao):
 
-    while erro > precisao and iteracao < max_iteracoes:
-        for i in range(dimensao):
-            soma = 0
-            for j in range(dimensao):
-                if j != i:
-                    soma += matriz_A[i][j] * x[j]
-            x[i] = (vetor_B[i] - soma) / matriz_A[i][i]
-        
-        erro = np.linalg.norm(x - x_anterior)
-        x_anterior = np.copy(x)
-        iteracao += 1
 
-    end_time = time.time()  
-    tempo = end_time - start_time  
-
-    return x, tempo
-
-def gauss_seidel(matriz_A, vetor_B, precisao, max_iteracoes=1000):
-    dimensao = len(vetor_B)
-    x = np.zeros(dimensao)
-    x_anterior = np.zeros(dimensao)
-    erro = np.inf
-    iteracao = 0
-
-    start_time = time.time()
-
-    while erro > precisao and iteracao < max_iteracoes:
-        for i in range(dimensao):
-            soma = 0
-            for j in range(dimensao):
-                if j != i:
-                    soma += matriz_A[i][j] * x[j]
-            x[i] = (vetor_B[i] - soma) / matriz_A[i][i]
-        
-        erro = np.linalg.norm(x - x_anterior)
-        x_anterior = np.copy(x)
-        iteracao += 1
-
-    end_time = time.time()  
-    tempo = end_time - start_time  
-
-    return x, tempo
-
-def Eliminacao_Gauss(dimensao, matriz_A, vetores_B):
+def eliminacao_gauss(dimensao, matriz_A, vetores_B):
 
     solucoes = []
     tempos_execucao = []
@@ -131,12 +85,11 @@ def Eliminacao_Gauss(dimensao, matriz_A, vetores_B):
 
     return solucoes, tempos_execucao
 
-def Fatoracao_LU_resolver(dimensao, matriz_A, vetores_B):
+def fatoracao_lu_resolver(matriz_A, vetores_B):
     solucoes = []
     tempos_execucao = []
 
     def fatoracao_lu(matriz_A):
-
         n = len(matriz_A)
         L = [[0.0] * n for _ in range(n)]
         U = [[0.0] * n for _ in range(n)]
@@ -148,9 +101,12 @@ def Fatoracao_LU_resolver(dimensao, matriz_A, vetores_B):
                 U[i][j] = matriz_A[i][j] - soma
             for j in range(i + 1, n):
                 soma = sum(U[k][i] * L[j][k] for k in range(i))
+                if U[i][i] == 0:
+                    raise ValueError("Divisão por zero detectada durante a fatoração LU.")
                 L[j][i] = (matriz_A[j][i] - soma) / U[i][i]
 
         return L, U
+
 
     def resolver_sistema_lu(L, U, b):
 
@@ -183,67 +139,54 @@ def Fatoracao_LU_resolver(dimensao, matriz_A, vetores_B):
 
     return solucoes, tempos_execucao
 
+def formatar_lista(lista):
+    """Formata uma lista de números para 10 casas decimais."""
+    return [round(elem, 10) if isinstance(elem, (int, float)) else elem for elem in lista]
+
+def formatar_matriz(matriz):
+    """Formata uma matriz para exibir os valores com 10 casas decimais."""
+    return [formatar_lista(linha) for linha in matriz]
+
 def imprimir_resultados(idx, A, b, precisao, X_gauss, tempo_gauss, X_lu, tempo_lu, X_jacobi, tempo_jacobi, X_seidel, tempo_seidel):
-    print(f"Sistema {idx + 1}:")
-    print("Matriz A:")
-    print(A)
-    print("Vetor B:")
-    print(b)
-    print(f"Precisão: {precisao:.3f}")
-    
-    print("\nMétodo de Eliminação de Gauss:")
-    print(f"Vetor X:\n{X_gauss}")
-    print(f"Tempo: {tempo_gauss:.4f} segundos")
-    
-    print("\nMétodo de Fatoração LU:")
-    print(f"Vetor X:\n{X_lu}")
-    print(f"Tempo: {tempo_lu:.4f} segundos")
-    
+
+    print('------------------------------------------------------')
+    print(f"Vetor B: {idx + 1}")
+    print('------------------------------------------------------')
+    print("\nEliminação de Gauss:")
+    print("Solução:")
+    pprint(formatar_lista(X_gauss[idx]))
+    print(f"Tempo de execução: {tempo_gauss[idx]:.10f} segundos")
+    print('------------------------------------------------------')
+    print("\nFatoração LU:")
+    print("Solução:")
+    pprint(formatar_lista(X_lu[idx]))
+    print(f"Tempo de execução: {tempo_lu[idx]:.10f} segundos")
+    print('------------------------------------------------------')
     print("\nMétodo de Gauss-Jacobi:")
-    print(f"Vetor X:\n{X_jacobi}")
-    print(f"Tempo: {tempo_jacobi:.4f} segundos")
-    
+    print("Solução:")
+    pprint(formatar_lista(X_jacobi[idx]))
+    print(f"Tempo de execução: {tempo_jacobi[idx]:.10f} segundos")
+    print('------------------------------------------------------')
     print("\nMétodo de Gauss-Seidel:")
-    print(f"Vetor X:\n{X_seidel}")
-    print(f"Tempo: {tempo_seidel:.4f} segundos")
-    
-    print()
+    print("Solução:")
+    pprint(formatar_lista(X_seidel[idx]))
+    print(f"Tempo de execução: {tempo_seidel[idx]:.10f} segundos")
 
 def main():
-
-    print("TRABALHO DE ALGORITMOS")
-
     try:
-        nome_arquivo = sys.argv[1] #recupera o nome do arquivo no argumento
+        nome_arquivo = "2_3x3.txt" #recupera o nome do arquivo no argumento
 
-        quantidade_sistemas, dimensao, precisao, matriz_A, vetores_B = ler_arquivo(nome_arquivo)
+        dimensao, precisao, matriz_A, vetores_B = ler_arquivo(nome_arquivo)
 
-        print(f"quantidade de sistemas = {quantidade_sistemas}")
-        print(f"dimensao = {dimensao}")
-        print(f"precisao = {precisao}")
-        print(f"matrizA = {matriz_A}")
-        print(f"Vetor B = {vetores_B}")
+        X_gauss, tempo_gauss = eliminacao_gauss(dimensao, matriz_A, vetores_B)
+        X_lu, tempo_lu = fatoracao_lu_resolver(matriz_A, vetores_B)
+        
+        X_jacobi, tempo_jacobi = metodo_gauss_jacobi(dimensao, precisao, matriz_A, vetores_B)
+        X_seidel, tempo_seidel = gauss_seidel(matriz_A, vetores_B, precisao)
 
-        print("Metodo Eliminação de Gauss")
-        solucoes, tempos = Eliminacao_Gauss(dimensao, matriz_A, vetores_B)
-        print(f"Soluções = {solucoes}")
-        print(f"tempos = {tempos}")
-
-        print("Método Fatoração LU")
-        solucoes, tempos = Fatoracao_LU_resolver(dimensao, matriz_A, vetores_B)
-        print(f"Soluções = {solucoes}")
-        print(f"tempos = {tempos}")
-
-        print("Gauss Jacobi")
-        solucoes, tempos = gauss_jacobi(matriz_A, vetores_B, precisao)
-        print(f"Soluções = {solucoes}")
-        print(f"tempos = {tempos}")
-
-        print("Gauss seidel")
-        solucoes, tempos = gauss_seidel(matriz_A, vetores_B, precisao)
-        print(f"Soluções = {solucoes}")
-        print(f"tempos = {tempos}")
-
+        for idx in range(len(vetores_B)):
+            imprimir_resultados(idx, matriz_A, vetores_B[idx], precisao, X_gauss, tempo_gauss, X_lu, tempo_lu, X_jacobi, tempo_jacobi, X_seidel, tempo_seidel)
+        print('------------------------------------------------------')
     except Exception as error:
         print(error)
 
